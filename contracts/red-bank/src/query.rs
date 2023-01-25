@@ -1,4 +1,5 @@
-use cosmwasm_std::{Addr, BlockInfo, Deps, Env, Order, StdError, StdResult, Uint128};
+use cosmwasm_std::{Addr, BlockInfo, Deps, Env, StdError, StdResult, Uint128};
+use cw_paginate::{paginate_map, paginate_map_prefix};
 use cw_storage_plus::Bound;
 use mars_red_bank_types::{
     address_provider::{self, MarsAddressType},
@@ -19,9 +20,6 @@ use crate::{
         COLLATERALS, CONFIG, DEBTS, EMERGENCY_OWNER, MARKETS, OWNER, UNCOLLATERALIZED_LOAN_LIMITS,
     },
 };
-
-const DEFAULT_LIMIT: u32 = 5;
-const MAX_LIMIT: u32 = 10;
 
 pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     let owner_state = OWNER.query(deps.storage)?;
@@ -49,16 +47,7 @@ pub fn query_markets(
     limit: Option<u32>,
 ) -> StdResult<Vec<Market>> {
     let start = start_after.map(|denom| Bound::ExclusiveRaw(denom.into_bytes()));
-    let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-
-    MARKETS
-        .range(deps.storage, start, None, Order::Ascending)
-        .take(limit)
-        .map(|item| {
-            let (_, market) = item?;
-            Ok(market)
-        })
-        .collect()
+    paginate_map(&MARKETS, deps.storage, start, limit, |_, market| Ok(market))
 }
 
 pub fn query_uncollateralized_loan_limit(
@@ -80,20 +69,19 @@ pub fn query_uncollateralized_loan_limits(
     limit: Option<u32>,
 ) -> StdResult<Vec<UncollateralizedLoanLimitResponse>> {
     let start = start_after.map(|denom| Bound::ExclusiveRaw(denom.into_bytes()));
-    let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-
-    UNCOLLATERALIZED_LOAN_LIMITS
-        .prefix(&user_addr)
-        .range(deps.storage, start, None, Order::Ascending)
-        .take(limit)
-        .map(|item| {
-            let (denom, limit) = item?;
+    paginate_map_prefix(
+        &UNCOLLATERALIZED_LOAN_LIMITS,
+        deps.storage,
+        &user_addr,
+        start,
+        limit,
+        |denom, limit| {
             Ok(UncollateralizedLoanLimitResponse {
                 denom,
                 limit,
             })
-        })
-        .collect()
+        },
+    )
 }
 
 pub fn query_user_debt(
@@ -127,30 +115,20 @@ pub fn query_user_debts(
     limit: Option<u32>,
 ) -> StdResult<Vec<UserDebtResponse>> {
     let block_time = block.time.seconds();
-
     let start = start_after.map(|denom| Bound::ExclusiveRaw(denom.into_bytes()));
-    let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
+    paginate_map_prefix(&DEBTS, deps.storage, &user_addr, start, limit, |denom, debt| {
+        let market = MARKETS.load(deps.storage, &denom)?;
 
-    DEBTS
-        .prefix(&user_addr)
-        .range(deps.storage, start, None, Order::Ascending)
-        .take(limit)
-        .map(|item| {
-            let (denom, debt) = item?;
+        let amount_scaled = debt.amount_scaled;
+        let amount = get_underlying_debt_amount(amount_scaled, &market, block_time)?;
 
-            let market = MARKETS.load(deps.storage, &denom)?;
-
-            let amount_scaled = debt.amount_scaled;
-            let amount = get_underlying_debt_amount(amount_scaled, &market, block_time)?;
-
-            Ok(UserDebtResponse {
-                denom,
-                amount_scaled,
-                amount,
-                uncollateralized: debt.uncollateralized,
-            })
+        Ok(UserDebtResponse {
+            denom,
+            amount_scaled,
+            amount,
+            uncollateralized: debt.uncollateralized,
         })
-        .collect()
+    })
 }
 
 pub fn query_user_collateral(
@@ -184,17 +162,14 @@ pub fn query_user_collaterals(
     limit: Option<u32>,
 ) -> StdResult<Vec<UserCollateralResponse>> {
     let block_time = block.time.seconds();
-
     let start = start_after.map(|denom| Bound::ExclusiveRaw(denom.into_bytes()));
-    let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-
-    COLLATERALS
-        .prefix(&user_addr)
-        .range(deps.storage, start, None, Order::Ascending)
-        .take(limit)
-        .map(|item| {
-            let (denom, collateral) = item?;
-
+    paginate_map_prefix(
+        &COLLATERALS,
+        deps.storage,
+        &user_addr,
+        start,
+        limit,
+        |denom, collateral| {
             let market = MARKETS.load(deps.storage, &denom)?;
 
             let amount_scaled = collateral.amount_scaled;
@@ -206,8 +181,8 @@ pub fn query_user_collaterals(
                 amount,
                 enabled: collateral.enabled,
             })
-        })
-        .collect()
+        },
+    )
 }
 
 pub fn query_scaled_liquidity_amount(
