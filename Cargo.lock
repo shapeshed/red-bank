@@ -930,6 +930,7 @@ name = "mars-oracle-base"
 version = "1.0.0"
 dependencies = [
  "cosmwasm-std",
+ "cw-paginate",
  "cw-storage-plus",
  "mars-owner",
  "mars-red-bank-types",

@@ -1,9 +1,9 @@
 use std::marker::PhantomData;
 
 use cosmwasm_std::{
-    to_binary, Addr, Binary, CustomQuery, Deps, DepsMut, Env, MessageInfo, Order, Response,
-    StdResult,
+    to_binary, Addr, Binary, CustomQuery, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
 };
+use cw_paginate::paginate_map;
 use cw_storage_plus::{Bound, Item, Map};
 use mars_owner::{Owner, OwnerInit::SetInitialOwner, OwnerUpdate};
 use mars_red_bank_types::oracle::{
@@ -13,9 +13,6 @@ use mars_red_bank_types::oracle::{
 use mars_utils::helpers::validate_native_denom;
 
 use crate::{error::ContractResult, PriceSource};
-
-const DEFAULT_LIMIT: u32 = 10;
-const MAX_LIMIT: u32 = 30;
 
 pub struct OracleBase<'a, P, C>
 where
@@ -185,19 +182,12 @@ where
         limit: Option<u32>,
     ) -> StdResult<Vec<PriceSourceResponse<P>>> {
         let start = start_after.map(|denom| Bound::ExclusiveRaw(denom.into_bytes()));
-        let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-
-        self.price_sources
-            .range(deps.storage, start, None, Order::Ascending)
-            .take(limit)
-            .map(|item| {
-                let (k, v) = item?;
-                Ok(PriceSourceResponse {
-                    denom: k,
-                    price_source: v,
-                })
+        paginate_map(&self.price_sources, deps.storage, start, limit, |denom, price_source| {
+            Ok(PriceSourceResponse {
+                denom,
+                price_source,
             })
-            .collect()
+        })
     }
 
     fn query_price(&self, deps: Deps<C>, env: Env, denom: String) -> ContractResult<PriceResponse> {
@@ -223,20 +213,19 @@ where
         limit: Option<u32>,
     ) -> ContractResult<Vec<PriceResponse>> {
         let cfg = self.config.load(deps.storage)?;
-
         let start = start_after.map(|denom| Bound::ExclusiveRaw(denom.into_bytes()));
-        let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-
-        self.price_sources
-            .range(deps.storage, start, None, Order::Ascending)
-            .take(limit)
-            .map(|item| {
-                let (k, v) = item?;
-                Ok(PriceResponse {
-                    price: v.query_price(&deps, &env, &k, &cfg.base_denom, &self.price_sources)?,
-                    denom: k,
-                })
+        paginate_map(&self.price_sources, deps.storage, start, limit, |denom, price_source| {
+            let price = price_source.query_price(
+                &deps,
+                &env,
+                &denom,
+                &cfg.base_denom,
+                &self.price_sources,
+            )?;
+            Ok(PriceResponse {
+                denom,
+                price,
             })
-            .collect()
+        })
     }
 }
