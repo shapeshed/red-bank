@@ -2,9 +2,8 @@ use std::convert::TryInto;
 
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{
-    to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Order, Response, StdResult,
-};
+use cosmwasm_std::{to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+use cw_paginate::paginate_map;
 use cw_storage_plus::Bound;
 use mars_owner::{OwnerInit::SetInitialOwner, OwnerUpdate};
 use mars_red_bank_types::address_provider::{
@@ -21,9 +20,6 @@ use crate::{
 
 pub const CONTRACT_NAME: &str = "crates.io:mars-address-provider";
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
-
-const DEFAULT_LIMIT: u32 = 10;
-const MAX_LIMIT: u32 = 30;
 
 // INIT
 
@@ -149,17 +145,10 @@ fn query_all_addresses(
     limit: Option<u32>,
 ) -> StdResult<Vec<AddressResponseItem>> {
     let start = start_after.map(MarsAddressTypeKey::from).map(Bound::exclusive);
-    let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-
-    ADDRESSES
-        .range(deps.storage, start, None, Order::Ascending)
-        .take(limit)
-        .map(|item| {
-            let (k, v) = item?;
-            Ok(AddressResponseItem {
-                address_type: k.try_into()?,
-                address: v,
-            })
+    paginate_map(&ADDRESSES, deps.storage, start, limit, |address_type, address| {
+        Ok(AddressResponseItem {
+            address_type: address_type.try_into()?,
+            address,
         })
-        .collect()
+    })
 }
