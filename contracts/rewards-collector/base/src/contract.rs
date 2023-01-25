@@ -2,8 +2,9 @@ use std::marker::PhantomData;
 
 use cosmwasm_std::{
     to_binary, Addr, Binary, Coin, CosmosMsg, CustomMsg, CustomQuery, Deps, DepsMut, Env, IbcMsg,
-    IbcTimeout, IbcTimeoutBlock, MessageInfo, Order, Response, StdResult, Uint128, WasmMsg,
+    IbcTimeout, IbcTimeoutBlock, MessageInfo, Response, StdResult, Uint128, WasmMsg,
 };
+use cw_paginate::paginate_map;
 use cw_storage_plus::{Bound, Item, Map};
 use mars_owner::{Owner, OwnerInit::SetInitialOwner, OwnerUpdate};
 use mars_red_bank_types::{
@@ -20,9 +21,6 @@ use crate::{
     helpers::{stringify_option_amount, unwrap_option_amount},
     ContractError, ContractResult, Route,
 };
-
-const DEFAULT_LIMIT: u32 = 5;
-const MAX_LIMIT: u32 = 10;
 
 pub struct CollectorBase<'a, R, M, Q>
 where
@@ -405,20 +403,13 @@ where
         start_after: Option<(String, String)>,
         limit: Option<u32>,
     ) -> StdResult<RoutesResponse<R>> {
-        let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
         let start = start_after.map(Bound::exclusive);
-
-        self.routes
-            .range(deps.storage, start, None, Order::Ascending)
-            .take(limit)
-            .map(|item| {
-                let (k, v) = item?;
-                Ok(RouteResponse {
-                    denom_in: k.0,
-                    denom_out: k.1,
-                    route: v,
-                })
+        paginate_map(&self.routes, deps.storage, start, limit, |(denom_in, denom_out), route| {
+            Ok(RouteResponse {
+                denom_in,
+                denom_out,
+                route,
             })
-            .collect()
+        })
     }
 }
