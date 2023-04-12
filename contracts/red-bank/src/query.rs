@@ -15,9 +15,7 @@ use crate::{
         get_scaled_debt_amount, get_scaled_liquidity_amount, get_underlying_debt_amount,
         get_underlying_liquidity_amount,
     },
-    state::{
-        COLLATERALS, CONFIG, DEBTS, EMERGENCY_OWNER, MARKETS, OWNER, UNCOLLATERALIZED_LOAN_LIMITS,
-    },
+    state::{COLLATERALS, CONFIG, DEBTS, MARKETS, OWNER, UNCOLLATERALIZED_LOAN_LIMITS},
 };
 
 const DEFAULT_LIMIT: u32 = 5;
@@ -25,13 +23,10 @@ const MAX_LIMIT: u32 = 10;
 
 pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     let owner_state = OWNER.query(deps.storage)?;
-    let emergency_owner_state = EMERGENCY_OWNER.query(deps.storage)?;
     let config = CONFIG.load(deps.storage)?;
     Ok(ConfigResponse {
         owner: owner_state.owner,
         proposed_new_owner: owner_state.proposed,
-        emergency_owner: emergency_owner_state.owner,
-        proposed_new_emergency_owner: emergency_owner_state.proposed,
         address_provider: config.address_provider.to_string(),
         close_factor: config.close_factor,
     })
@@ -256,13 +251,17 @@ pub fn query_user_position(
     user_addr: Addr,
 ) -> Result<UserPositionResponse, ContractError> {
     let config = CONFIG.load(deps.storage)?;
-    let oracle_addr = address_provider::helpers::query_contract_addr(
-        deps,
-        &config.address_provider,
-        MarsAddressType::Oracle,
-    )?;
 
-    let positions = health::get_user_positions_map(&deps, &env, &user_addr, &oracle_addr)?;
+    let addresses = address_provider::helpers::query_contract_addrs(
+        deps.clone(), // TODO can we avoid this?
+        &config.address_provider,
+        vec![MarsAddressType::Oracle, MarsAddressType::Params],
+    )?;
+    let oracle_addr = &addresses[&MarsAddressType::Oracle];
+    let params_addr = &addresses[&MarsAddressType::Params];
+
+    let positions =
+        health::get_user_positions_map(&deps, &env, &user_addr, &oracle_addr, params_addr)?;
     let health = health::compute_position_health(&positions)?;
 
     let health_status = if let (Some(max_ltv_hf), Some(liq_threshold_hf)) =
