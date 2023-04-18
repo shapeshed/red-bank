@@ -6,6 +6,7 @@ use cosmwasm_std::{
 };
 use mars_oracle_osmosis::DowntimeDetector;
 use mars_osmosis::helpers::QueryPoolResponse;
+use mars_params::types::AssetParams;
 use mars_red_bank_types::{address_provider, incentives, oracle, red_bank};
 use osmosis_std::types::osmosis::{
     downtimedetector::v1beta1::RecoveredSinceDowntimeOfLengthResponse,
@@ -18,6 +19,7 @@ use crate::{
     mock_address_provider,
     oracle_querier::OracleQuerier,
     osmosis_querier::{OsmosisQuerier, PriceKey},
+    params_querier::ParamsQuerier,
     red_bank_querier::RedBankQuerier,
 };
 
@@ -27,6 +29,7 @@ pub struct MarsMockQuerier {
     incentives_querier: IncentivesQuerier,
     osmosis_querier: OsmosisQuerier,
     redbank_querier: RedBankQuerier,
+    params_querier: ParamsQuerier,
 }
 
 impl Querier for MarsMockQuerier {
@@ -53,6 +56,7 @@ impl MarsMockQuerier {
             incentives_querier: IncentivesQuerier::default(),
             osmosis_querier: OsmosisQuerier::default(),
             redbank_querier: RedBankQuerier::default(),
+            params_querier: ParamsQuerier::default(),
         }
     }
 
@@ -156,6 +160,10 @@ impl MarsMockQuerier {
         self.redbank_querier.users_positions.insert(user_address, position);
     }
 
+    pub fn set_redbank_params(&mut self, denom: &str, params: AssetParams) {
+        self.params_querier.params.insert(denom.to_string(), params);
+    }
+
     pub fn handle_query(&self, request: &QueryRequest<Empty>) -> QuerierResult {
         match &request {
             QueryRequest::Wasm(WasmQuery::Smart {
@@ -189,6 +197,11 @@ impl MarsMockQuerier {
                 // RedBank Queries
                 if let Ok(redbank_query) = from_binary::<red_bank::QueryMsg>(msg) {
                     return self.redbank_querier.handle_query(redbank_query);
+                }
+
+                // Params Queries
+                if let Ok(params_query) = from_binary::<mars_params::msg::QueryMsg>(msg) {
+                    return self.params_querier.handle_query(params_query);
                 }
 
                 panic!("[mock]: Unsupported wasm query: {msg:?}");
