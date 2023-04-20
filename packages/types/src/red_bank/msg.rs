@@ -8,8 +8,6 @@ use crate::red_bank::InterestRateModel;
 pub struct InstantiateMsg {
     /// Contract's owner
     pub owner: String,
-    /// Contract's emergency owner
-    pub emergency_owner: String,
     /// Market configuration
     pub config: CreateOrUpdateConfig,
 }
