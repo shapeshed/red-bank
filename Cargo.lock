@@ -916,6 +916,7 @@ dependencies = [
  "mars-oracle-base",
  "mars-oracle-osmosis",
  "mars-osmosis",
+ "mars-params",
  "mars-red-bank",
  "mars-red-bank-types 1.0.1",
  "mars-rewards-collector-base",

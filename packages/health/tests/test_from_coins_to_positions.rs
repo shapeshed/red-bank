@@ -104,7 +104,7 @@ fn from_coins_to_positions() {
     assert_eq!(
         positions,
         StdError::GenericErr {
-            msg: "Querier contract error: [mock]: could not find the market for invalid_denom"
+            msg: "Querier contract error: [mock]: could not find the params for invalid_denom"
                 .to_string()
         }
     );
