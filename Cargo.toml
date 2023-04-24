@@ -14,37 +14,45 @@ members = [
 ]
 
 [workspace.package]
-version       = "1.0.1"
-authors       = [
+version = "1.0.1"
+authors = [
   "Larry Engineer <larry@delphidigital.io>",
   "Piotr Babel <piotr@delphilabs.io>",
   "Spike Spiegel <spikeonmars@protonmail.com>",
   "Ahmad Kaouk",
   "Harry Scholes",
 ]
-edition       = "2021"
-license       = "GPL-3.0-or-later"
-repository    = "https://github.com/mars-protocol/red-bank"
-homepage      = "https://marsprotocol.io"
+edition = "2021"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/mars-protocol/red-bank"
+homepage = "https://marsprotocol.io"
 documentation = "https://docs.marsprotocol.io/"
-keywords      = ["mars", "cosmos", "cosmwasm"]
+keywords = [
+  "mars",
+  "cosmos",
+  "cosmwasm",
+]
 
 [workspace.dependencies]
-anyhow            = "1.0.68"
-bech32            = "0.9.1"
-cosmwasm-schema   = "1.1.9"
-cosmwasm-std      = "1.1.9"
-cw2               = { git = "https://github.com/mars-protocol/cw-plus", rev = "4014255" }
-cw-multi-test     = "0.16.1"
-cw-storage-plus   = "1.0.1"
-cw-utils          = "1.0.1"
-mars-owner        = "1.0.0"
-osmosis-std       = "0.14.0"
+anyhow = "1.0.68"
+bech32 = "0.9.1"
+cosmwasm-schema = "1.1.9"
+cosmwasm-std = "1.1.9"
+cw2 = { git = "https://github.com/mars-protocol/cw-plus", rev = "4014255" }
+cw-multi-test = "0.16.1"
+cw-storage-plus = "1.0.1"
+cw-utils = "1.0.1"
+mars-owner = "1.0.0"
+osmosis-std = "0.14.0"
 osmosis-test-tube = "14.1.1"
-prost             = { version = "0.11.5", default-features = false, features = ["prost-derive"] }
-schemars          = "0.8.11"
-serde             = { version = "1.0.152", default-features = false, features = ["derive"] }
-thiserror         = "1.0.38"
+prost = { version = "0.11.5", default-features = false, features = [
+  "prost-derive",
+] }
+schemars = "0.8.11"
+serde = { version = "1.0.152", default-features = false, features = [
+  "derive",
+] }
+thiserror = "1.0.38"
 
 # packages
 mars-health         = { version = "1.0.0", path = "./packages/health" }
@@ -52,6 +60,7 @@ mars-osmosis        = { version = "1.0.0", path = "./packages/chains/osmosis" }
 mars-red-bank-types = { version = "1.0.0", path = "./packages/types" }
 mars-testing        = { version = "1.0.0", path = "./packages/testing" }
 mars-utils          = { version = "1.0.0", path = "./packages/utils" }
+mars-swapper        = { path = "../mars-common/packages/mars-swapper" }
 
 # contracts
 mars-address-provider          = { version = "1.0.0", path = "./contracts/address-provider" }
@@ -61,6 +70,8 @@ mars-oracle-osmosis            = { version = "1.0.0", path = "./contracts/oracle
 mars-red-bank                  = { version = "1.0.0", path = "./contracts/red-bank" }
 mars-rewards-collector-base    = { version = "1.0.0", path = "./contracts/rewards-collector/base" }
 mars-rewards-collector-osmosis = { version = "1.0.0", path = "./contracts/rewards-collector/osmosis" }
+mars-swapper-osmosis           = { version = "1.0.0", path = "../mars-common/contracts/swapper/osmosis" }
+mars-swapper-base              = { version = "1.0.0", path = "../mars-common/contracts/swapper/base" }
 
 [profile.release]
 codegen-units    = 1
