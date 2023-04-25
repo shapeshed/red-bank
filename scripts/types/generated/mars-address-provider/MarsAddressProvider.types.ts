@@ -20,7 +20,7 @@ export type ExecuteMsg =
       update_owner: OwnerUpdate
     }
 export type MarsAddressType =
-  | ('incentives' | 'oracle' | 'red_bank' | 'rewards_collector')
+  | ('incentives' | 'oracle' | 'red_bank' | 'rewards_collector' | 'params')
   | 'protocol_admin'
   | 'fee_collector'
   | 'safety_fund'
@@ -33,6 +33,12 @@ export type OwnerUpdate =
   | 'clear_proposed'
   | 'accept_proposed'
   | 'abolish_owner_role'
+  | {
+      set_emergency_owner: {
+        emergency_owner: string
+      }
+    }
+  | 'clear_emergency_owner'
 export type QueryMsg =
   | {
       config: {}

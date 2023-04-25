@@ -9,11 +9,11 @@ import { UseQueryOptions, useQuery, useMutation, UseMutationOptions } from '@tan
 import { ExecuteResult } from '@cosmjs/cosmwasm-stargate'
 import { StdFee, Coin } from '@cosmjs/amino'
 import {
-  Decimal,
   InstantiateMsg,
   CreateOrUpdateConfig,
   ExecuteMsg,
   OwnerUpdate,
+  Decimal,
   Uint128,
   InitOrUpdateAssetParams,
   InterestRateModel,
@@ -670,26 +670,6 @@ export function useMarsRedBankUpdateConfigMutation(
   return useMutation<ExecuteResult, Error, MarsRedBankUpdateConfigMutation>(
     ({ client, msg, args: { fee, memo, funds } = {} }) =>
       client.updateConfig(msg, fee, memo, funds),
-    options,
-  )
-}
-export interface MarsRedBankUpdateEmergencyOwnerMutation {
-  client: MarsRedBankClient
-  args?: {
-    fee?: number | StdFee | 'auto'
-    memo?: string
-    funds?: Coin[]
-  }
-}
-export function useMarsRedBankUpdateEmergencyOwnerMutation(
-  options?: Omit<
-    UseMutationOptions<ExecuteResult, Error, MarsRedBankUpdateEmergencyOwnerMutation>,
-    'mutationFn'
-  >,
-) {
-  return useMutation<ExecuteResult, Error, MarsRedBankUpdateEmergencyOwnerMutation>(
-    ({ client, msg, args: { fee, memo, funds } = {} }) =>
-      client.updateEmergencyOwner(msg, fee, memo, funds),
     options,
   )
 }

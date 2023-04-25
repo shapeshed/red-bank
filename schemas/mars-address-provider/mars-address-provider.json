@@ -76,7 +76,8 @@
               "incentives",
               "oracle",
               "red_bank",
-              "rewards_collector"
+              "rewards_collector",
+              "params"
             ]
           },
           {
@@ -145,6 +146,35 @@
             "type": "string",
             "enum": [
               "abolish_owner_role"
+            ]
+          },
+          {
+            "description": "A separate entity managed by Owner that can be used for granting specific emergency powers.",
+            "type": "object",
+            "required": [
+              "set_emergency_owner"
+            ],
+            "properties": {
+              "set_emergency_owner": {
+                "type": "object",
+                "required": [
+                  "emergency_owner"
+                ],
+                "properties": {
+                  "emergency_owner": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "description": "Remove the entity in the Emergency Owner role",
+            "type": "string",
+            "enum": [
+              "clear_emergency_owner"
             ]
           }
         ]
@@ -242,7 +272,8 @@
               "incentives",
               "oracle",
               "red_bank",
-              "rewards_collector"
+              "rewards_collector",
+              "params"
             ]
           },
           {
@@ -305,7 +336,8 @@
                 "incentives",
                 "oracle",
                 "red_bank",
-                "rewards_collector"
+                "rewards_collector",
+                "params"
               ]
             },
             {
@@ -371,7 +403,8 @@
                 "incentives",
                 "oracle",
                 "red_bank",
-                "rewards_collector"
+                "rewards_collector",
+                "params"
               ]
             },
             {
@@ -437,7 +470,8 @@
                 "incentives",
                 "oracle",
                 "red_bank",
-                "rewards_collector"
+                "rewards_collector",
+                "params"
               ]
             },
             {
