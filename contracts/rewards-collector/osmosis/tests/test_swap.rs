@@ -1,19 +1,14 @@
 use std::vec;
 
 use cosmwasm_std::{
-    coin,
-    testing::{mock_env, MOCK_CONTRACT_ADDR},
-    to_binary, CosmosMsg, Decimal, Empty, Fraction, SubMsg, Uint128, WasmMsg,
+    coin, testing::mock_env, to_binary, CosmosMsg, Decimal, Empty, Fraction, SubMsg, Uint128,
+    WasmMsg,
 };
 use mars_red_bank_types::rewards_collector::{ConfigResponse, ExecuteMsg, QueryMsg};
 use mars_rewards_collector_osmosis::contract::entry::execute;
 use mars_testing::mock_info;
-use osmosis_std::types::{
-    cosmos::base::v1beta1::Coin,
-    osmosis::{
-        gamm::v1beta1::{MsgSwapExactAmountIn, SwapAmountInRoute},
-        twap::v1beta1::ArithmeticTwapToNowResponse,
-    },
+use osmosis_std::types::osmosis::{
+    gamm::v1beta1::SwapAmountInRoute, twap::v1beta1::ArithmeticTwapToNowResponse,
 };
 
 mod helpers;

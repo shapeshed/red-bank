@@ -1,17 +1,18 @@
 use cosmwasm_std::{coin, Decimal};
+use cw_it::osmosis_test_tube::{Account, Gamm, Module, OsmosisTestApp, Wasm};
 use mars_red_bank_types::{
     address_provider::{
-        ExecuteMsg as ExecuteMsgAddr, InstantiateMsg as InstantiateAddr, MarsAddressType,
+        AddressResponseItem, ExecuteMsg as ExecuteMsgAddr, InstantiateMsg as InstantiateAddr,
+        MarsAddressType, QueryMsg as QueryMsgAddr,
     },
     rewards_collector::{ExecuteMsg, InstantiateMsg as InstantiateRewards, UpdateConfig},
 };
 use mars_swapper_osmosis::route::{OsmosisRoute, SwapAmountInRoute};
-use osmosis_test_tube::{Account, Gamm, Module, OsmosisTestApp, Wasm};
 
 use crate::{
     cosmos_bank::Bank,
     helpers::{
-        osmosis::{assert_err, instantiate_contract},
+        osmosis::{assert_err, instantiate_contract, setup_redbank},
         swap_to_create_twap_records,
     },
 };
@@ -26,7 +27,6 @@ const OSMOSIS_SWAPPER_CONTRACT_NAME: &str = "mars-swapper-osmosis";
 #[test]
 fn swapping_rewards() {
     let app = OsmosisTestApp::new();
-    let wasm = Wasm::new(&app);
 
     let accs = app
         .init_accounts(
@@ -42,55 +42,10 @@ fn swapping_rewards() {
     let signer = &accs[0];
     let user = &accs[1];
 
-    let addr_provider_addr = instantiate_contract(
-        &wasm,
-        signer,
-        OSMOSIS_ADDR_PROVIDER_CONTRACT_NAME,
-        &InstantiateAddr {
-            owner: signer.address(),
-            prefix: "osmo".to_string(),
-        },
-    );
+    let (_, _, addr_provider) = setup_redbank(&app, signer);
 
     let safety_fund_denom = "uusdc";
     let fee_collector_denom = "umars";
-    let rewards_addr = instantiate_contract(
-        &wasm,
-        signer,
-        OSMOSIS_REWARDS_CONTRACT_NAME,
-        &InstantiateRewards {
-            owner: signer.address(),
-            address_provider: addr_provider_addr.clone(),
-            safety_tax_rate: Decimal::percent(25),
-            safety_fund_denom: safety_fund_denom.to_string(),
-            fee_collector_denom: fee_collector_denom.to_string(),
-            channel_id: "channel-1".to_string(),
-            timeout_seconds: 60,
-            slippage_tolerance: Decimal::percent(1),
-        },
-    );
-
-    // Instantiate swapper addr
-    let swapper_addr = instantiate_contract(
-        &wasm,
-        signer,
-        OSMOSIS_SWAPPER_CONTRACT_NAME,
-        &mars_swapper::InstantiateMsg {
-            owner: signer.address(),
-        },
-    );
-
-    // Set swapper addr in address provider
-    wasm.execute(
-        &addr_provider_addr,
-        &mars_red_bank_types::address_provider::ExecuteMsg::SetAddress {
-            address_type: MarsAddressType::Swapper,
-            address: swapper_addr.clone(),
-        },
-        &[],
-        signer,
-    )
-    .unwrap();
 
     let gamm = Gamm::new(&app);
     let pool_mars_osmo = gamm
@@ -136,6 +91,22 @@ fn swapping_rewards() {
     );
 
     // set routes
+    let wasm = Wasm::new(&app);
+    let swapper_addr = wasm
+        .query::<_, AddressResponseItem>(
+            &addr_provider,
+            &QueryMsgAddr::Address(MarsAddressType::Swapper),
+        )
+        .unwrap()
+        .address;
+    let rewards_addr = wasm
+        .query::<_, AddressResponseItem>(
+            &addr_provider,
+            &QueryMsgAddr::Address(MarsAddressType::RewardsCollector),
+        )
+        .unwrap()
+        .address;
+
     wasm.execute(
         &swapper_addr,
         &mars_swapper::ExecuteMsg::SetRoute {
@@ -268,7 +239,7 @@ fn distribute_rewards_if_ibc_channel_invalid() {
 
     // setup address-provider contract
     let addr_provider_addr = instantiate_contract(
-        &wasm,
+        &app,
         signer,
         OSMOSIS_ADDR_PROVIDER_CONTRACT_NAME,
         &InstantiateAddr {
@@ -301,7 +272,7 @@ fn distribute_rewards_if_ibc_channel_invalid() {
     let safety_fund_denom = "uusdc";
     let fee_collector_denom = "umars";
     let rewards_addr = instantiate_contract(
-        &wasm,
+        &app,
         signer,
         OSMOSIS_REWARDS_CONTRACT_NAME,
         &InstantiateRewards {

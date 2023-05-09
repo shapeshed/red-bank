@@ -1,6 +1,9 @@
 use std::str::FromStr;
 
 use cosmwasm_std::Coin;
+use cw_it::osmosis_test_tube::{
+    fn_execute, fn_query, Account, Module, Runner, RunnerExecuteResult, SigningAccount,
+};
 use osmosis_std::types::cosmos::{
     bank::v1beta1::{
         MsgSend, MsgSendResponse, QueryAllBalancesRequest, QueryAllBalancesResponse,
@@ -8,9 +11,6 @@ use osmosis_std::types::cosmos::{
         QueryTotalSupplyResponse,
     },
     base::v1beta1::Coin as CosmosCoin,
-};
-use osmosis_test_tube::{
-    fn_execute, fn_query, Account, Module, Runner, RunnerExecuteResult, SigningAccount,
 };
 
 pub struct Bank<'a, R: Runner<'a>> {

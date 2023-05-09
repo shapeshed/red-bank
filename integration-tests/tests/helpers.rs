@@ -2,6 +2,7 @@
 
 use anyhow::Result as AnyResult;
 use cosmwasm_std::{Coin, Decimal};
+use cw_it::osmosis_test_tube::{Account, ExecuteResponse, OsmosisTestApp, Runner, SigningAccount};
 use cw_multi_test::AppResponse;
 use mars_red_bank::error::ContractError;
 use mars_red_bank_types::red_bank::{
@@ -10,7 +11,6 @@ use mars_red_bank_types::red_bank::{
 use osmosis_std::types::osmosis::gamm::v1beta1::{
     MsgSwapExactAmountIn, MsgSwapExactAmountInResponse, SwapAmountInRoute,
 };
-use osmosis_test_tube::{Account, ExecuteResponse, OsmosisTestApp, Runner, SigningAccount};
 
 pub fn default_asset_params() -> InitOrUpdateAssetParams {
     InitOrUpdateAssetParams {
@@ -65,8 +65,166 @@ pub fn is_user_liquidatable(position: &UserPositionResponse) -> bool {
 pub mod osmosis {
     use std::fmt::Display;
 
-    use osmosis_test_tube::{OsmosisTestApp, RunnerError, SigningAccount, Wasm};
+    use cw_it::test_tube::{Module, Runner, RunnerError, SigningAccount, Wasm};
     use serde::Serialize;
+
+    use cosmwasm_std::{Decimal, Uint128};
+    use cw_it::test_tube::Account;
+    use mars_red_bank_types::{
+        address_provider::{
+            ExecuteMsg::SetAddress, InstantiateMsg as InstantiateAddr, MarsAddressType,
+        },
+        incentives::InstantiateMsg as InstantiateIncentives,
+        oracle::InstantiateMsg as InstantiateOracle,
+        red_bank::{
+            CreateOrUpdateConfig, ExecuteMsg::InitAsset, InstantiateMsg as InstantiateRedBank,
+        },
+        rewards_collector::InstantiateMsg as InstantiateRewards,
+    };
+
+    use super::default_asset_params;
+
+    const OSMOSIS_ADDR_PROVIDER_CONTRACT_NAME: &str = "mars-address-provider";
+    const OSMOSIS_REWARDS_CONTRACT_NAME: &str = "mars-rewards-collector-osmosis";
+    const OSMOSIS_SWAPPER_CONTRACT_NAME: &str = "mars-swapper-osmosis";
+    const OSMOSIS_ORACLE_CONTRACT_NAME: &str = "mars-oracle-osmosis";
+    const OSMOSIS_RED_BANK_CONTRACT_NAME: &str = "mars-red-bank";
+    const OSMOSIS_INCENTIVES_CONTRACT_NAME: &str = "mars-incentives";
+
+    // helper function for redbank setup
+    pub fn setup_redbank<'a, R: Runner<'a>>(
+        runner: &'a R,
+        signer: &SigningAccount,
+    ) -> (String, String, String) {
+        let oracle_addr = instantiate_contract(
+            runner,
+            signer,
+            OSMOSIS_ORACLE_CONTRACT_NAME,
+            &InstantiateOracle {
+                owner: signer.address(),
+                base_denom: "uosmo".to_string(),
+            },
+        );
+
+        let addr_provider_addr = instantiate_contract(
+            runner,
+            signer,
+            OSMOSIS_ADDR_PROVIDER_CONTRACT_NAME,
+            &InstantiateAddr {
+                owner: signer.address(),
+                prefix: "osmo".to_string(),
+            },
+        );
+
+        let red_bank_addr = instantiate_contract(
+            runner,
+            signer,
+            OSMOSIS_RED_BANK_CONTRACT_NAME,
+            &InstantiateRedBank {
+                owner: signer.address(),
+                emergency_owner: signer.address(),
+                config: CreateOrUpdateConfig {
+                    address_provider: Some(addr_provider_addr.clone()),
+                    close_factor: Some(Decimal::percent(10)),
+                },
+            },
+        );
+
+        let incentives_addr = instantiate_contract(
+            runner,
+            signer,
+            OSMOSIS_INCENTIVES_CONTRACT_NAME,
+            &InstantiateIncentives {
+                owner: signer.address(),
+                address_provider: addr_provider_addr.clone(),
+                mars_denom: "umars".to_string(),
+            },
+        );
+
+        let rewards_addr = instantiate_contract(
+            runner,
+            signer,
+            OSMOSIS_REWARDS_CONTRACT_NAME,
+            &InstantiateRewards {
+                owner: (signer.address()),
+                address_provider: addr_provider_addr.clone(),
+                safety_tax_rate: Decimal::percent(25),
+                safety_fund_denom: "uosmo".to_string(),
+                fee_collector_denom: "uosmo".to_string(),
+                channel_id: "channel-1".to_string(),
+                timeout_seconds: 60,
+                slippage_tolerance: Decimal::new(Uint128::from(1u128)),
+            },
+        );
+
+        let wasm = Wasm::new(runner);
+        wasm.execute(
+            &addr_provider_addr,
+            &SetAddress {
+                address_type: MarsAddressType::RedBank,
+                address: red_bank_addr.clone(),
+            },
+            &[],
+            signer,
+        )
+        .unwrap();
+
+        wasm.execute(
+            &addr_provider_addr,
+            &SetAddress {
+                address_type: MarsAddressType::Incentives,
+                address: incentives_addr,
+            },
+            &[],
+            signer,
+        )
+        .unwrap();
+
+        wasm.execute(
+            &addr_provider_addr,
+            &SetAddress {
+                address_type: MarsAddressType::Oracle,
+                address: oracle_addr.clone(),
+            },
+            &[],
+            signer,
+        )
+        .unwrap();
+
+        wasm.execute(
+            &addr_provider_addr,
+            &SetAddress {
+                address_type: MarsAddressType::RewardsCollector,
+                address: rewards_addr,
+            },
+            &[],
+            signer,
+        )
+        .unwrap();
+
+        wasm.execute(
+            &red_bank_addr,
+            &InitAsset {
+                denom: "uosmo".to_string(),
+                params: default_asset_params(),
+            },
+            &[],
+            signer,
+        )
+        .unwrap();
+
+        wasm.execute(
+            &red_bank_addr,
+            &InitAsset {
+                denom: "uatom".to_string(),
+                params: default_asset_params(),
+            },
+            &[],
+            signer,
+        )
+        .unwrap();
+        (oracle_addr, red_bank_addr, addr_provider_addr)
+    }
 
     pub fn wasm_file(contract_name: &str) -> String {
         let artifacts_dir =
@@ -75,8 +233,8 @@ pub mod osmosis {
         format!("../{artifacts_dir}/{snaked_name}.wasm")
     }
 
-    pub fn instantiate_contract<M>(
-        wasm: &Wasm<OsmosisTestApp>,
+    pub fn instantiate_contract<'a, M, R: Runner<'a>>(
+        runner: &'a R,
         owner: &SigningAccount,
         contract_name: &str,
         msg: &M,
@@ -84,6 +242,7 @@ pub mod osmosis {
     where
         M: ?Sized + Serialize,
     {
+        let wasm = Wasm::new(runner);
         println!("uploading {}", wasm_file(contract_name));
         let wasm_byte_code = std::fs::read(wasm_file(contract_name)).unwrap();
         let code_id = wasm.store_code(&wasm_byte_code, None, owner).unwrap().data.code_id;
@@ -92,6 +251,7 @@ pub mod osmosis {
     }
 
     pub fn assert_err(actual: RunnerError, expected: impl Display) {
+        println!("actual: {:?}", actual);
         match actual {
             RunnerError::ExecuteError {
                 msg,
