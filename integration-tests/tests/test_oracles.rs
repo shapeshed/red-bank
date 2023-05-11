@@ -33,7 +33,7 @@ mod helpers;
 const OSMOSIS_ORACLE_CONTRACT_NAME: &str = "mars-oracle-osmosis";
 const OSMOSIS_RED_BANK_CONTRACT_NAME: &str = "mars-red-bank";
 const OSMOSIS_ADDR_PROVIDER_CONTRACT_NAME: &str = "mars-address-provider";
-const OSMOSIS_REWARDS_CONTRACT_NAME: &str = "mars-rewards-collector-osmosis";
+const OSMOSIS_REWARDS_CONTRACT_NAME: &str = "mars-rewards-collector";
 const OSMOSIS_INCENTIVES_CONTRACT_NAME: &str = "mars-incentives";
 
 #[test]

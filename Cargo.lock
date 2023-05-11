@@ -928,8 +928,7 @@ dependencies = [
  "mars-osmosis 1.0.1",
  "mars-red-bank",
  "mars-red-bank-types",
- "mars-rewards-collector-base",
- "mars-rewards-collector-osmosis",
+ "mars-rewards-collector",
  "mars-swapper",
  "mars-swapper-osmosis",
  "mars-testing",
@@ -1035,7 +1034,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "mars-rewards-collector-base"
+name = "mars-rewards-collector"
 version = "1.0.1"
 dependencies = [
  "cosmwasm-std",
@@ -1045,29 +1044,6 @@ dependencies = [
  "mars-swapper",
  "mars-testing",
  "mars-utils",
- "schemars",
- "serde",
- "thiserror",
-]
-
-[[package]]
-name = "mars-rewards-collector-osmosis"
-version = "1.0.1"
-dependencies = [
- "cosmwasm-schema",
- "cosmwasm-std",
- "cw-storage-plus",
- "cw2 1.0.1 (git+https://github.com/mars-protocol/cw-plus?rev=4014255)",
- "mars-osmosis 1.0.1",
- "mars-owner",
- "mars-red-bank-types",
- "mars-rewards-collector-base",
- "mars-swapper",
- "mars-swapper-base",
- "mars-swapper-osmosis",
- "mars-testing",
- "mars-utils",
- "osmosis-std 0.14.0",
  "schemars",
  "serde",
  "thiserror",
@@ -1124,7 +1100,7 @@ dependencies = [
  "mars-osmosis 1.0.1",
  "mars-red-bank",
  "mars-red-bank-types",
- "mars-rewards-collector-osmosis",
+ "mars-rewards-collector",
  "osmosis-std 0.14.0",
  "prost 0.11.6",
  "schemars",

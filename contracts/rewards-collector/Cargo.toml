@@ -1,5 +1,5 @@
 [package]
-name          = "mars-rewards-collector-base"
+name          = "mars-rewards-collector"
 version       = { workspace = true }
 authors       = { workspace = true }
 edition       = { workspace = true }
